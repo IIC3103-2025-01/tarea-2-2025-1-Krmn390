@@ -21,7 +21,7 @@ function Chat({ messages, onSend }) {
   }, [messages]);
 
   return (
-    <div style={{ border: "1px solid #ccc", padding: "1rem", maxWidth: 500, marginTop: "1rem" }}>
+    <div style={{ border: "1px solid #ccc", padding: "1rem", maxWidth: "100%", marginTop: "1rem" }}>
       <h3>💬 Chat con Satélites</h3>
 
       <div

@@ -8,15 +8,15 @@ export default function useISS() {
       try {
         const res = await fetch(import.meta.env.VITE_NASA_URL);
         const data = await res.json();
-        const { latitude, longitude } = data.iss_position;
+        const { latitude, longitude } = data;
         setIssPosition({ lat: parseFloat(latitude), lng: parseFloat(longitude) });
       } catch (err) {
         console.error("❌ Error obteniendo posición de la ISS", err);
       }
     };
 
-    fetchPosition(); // inicial
-    const interval = setInterval(fetchPosition, 5000); // cada 5s
+    fetchPosition();
+    const interval = setInterval(fetchPosition, 5000);
     return () => clearInterval(interval);
   }, []);
 
