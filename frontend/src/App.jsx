@@ -1,34 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import { useReducer } from "react";
+import useSocket from "./hooks/useSocket";
+import { socketReducer, initialState } from "./reducers/socketReducer";
+import { extractPayload } from "./utils/extractPayload";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [state, dispatch] = useReducer(socketReducer, initialState);
+
+  useSocket((data) => {
+    dispatch({ type: data.type, payload: extractPayload(data) });
+  });
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+    <div>
+      <h1>Satélites: {state.satellites.length}</h1>
+      <h2>Mensajes: {state.messages.length}</h2>
+      {/* Agrega componentes visuales aquí */}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
