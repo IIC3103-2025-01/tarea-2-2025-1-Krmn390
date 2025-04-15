@@ -33,5 +33,15 @@ export default function useSocket(onMessage) {
     };
   }, []);
 
-  return socketRef;
+  const sendCommand = (commandType, payload = {}) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      const message = JSON.stringify({ type: commandType, ...payload });
+      console.log("📤 Enviando:", message);
+      socketRef.current.send(message);
+    } else {
+      console.warn("⚠️ WebSocket no está conectado");
+    }
+  };
+
+  return { socketRef, sendCommand };
 }
