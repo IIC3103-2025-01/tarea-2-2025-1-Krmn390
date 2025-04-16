@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "globe.gl": "^2.41.4",
-    "three": "^0.175.0"
-  }
-}
