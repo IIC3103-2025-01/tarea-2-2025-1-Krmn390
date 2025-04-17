@@ -35,19 +35,20 @@ function Chat({ messages, onSend }) {
           border: "1px solid #ddd"
         }}
       >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              color: msg.level === "warn" ? "red" : "black",
-              marginBottom: "0.5rem"
-            }}
-          >
-            <strong>{msg.station_id || "¿?"}:</strong> {msg.content}
-            <br />
-            <small>{new Date(msg.date).toLocaleString()}</small>
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          const timestamp = msg.date ? new Date(msg.date).toLocaleString() : "¿sin fecha?";
+          const isWarning = msg.level === "warn";
+          const color = isWarning ? "red" : "black";
+          const sender = msg.station_id || msg.satellite_id || "¿?";
+
+          return (
+            <div key={i} style={{ marginBottom: "0.8rem", color }}>
+              <strong>{sender}:</strong> {msg.content}
+              <br />
+              <small>{timestamp}</small>
+            </div>
+          );
+        })}
         <div ref={scrollRef} />
       </div>
 

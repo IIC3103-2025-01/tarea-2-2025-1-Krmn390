@@ -2,6 +2,17 @@ import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import Globe from "globe.gl";
 import * as THREE from 'three';
 
+function haversineDistance(pos1, pos2) {
+  const R = 6371;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(pos2.lat - pos1.lat);
+  const dLng = toRad(pos2.lng - pos1.lng);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(pos1.lat)) * Math.cos(toRad(pos2.lat)) *
+            Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 const DSN_STATIONS = [
   { name: "Goldstone DSN", lat: 35.4267, lng: -116.89 },
@@ -39,11 +50,10 @@ const GlobeComponent = forwardRef(function GlobeComponent({
       .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
       .backgroundImageUrl("//unpkg.com/three-globe/example/img/night-sky.png")
       .pointOfView({ lat: 20, lng: 0, altitude: 2.5 });
-  
-    // 💡 Estilo personalizado
+
     const globeMaterial = globe.globeMaterial();
     globeMaterial.bumpScale = 10;
-  
+
     new THREE.TextureLoader().load(
       "//unpkg.com/three-globe/example/img/earth-water.png",
       (texture) => {
@@ -52,36 +62,25 @@ const GlobeComponent = forwardRef(function GlobeComponent({
         globeMaterial.shininess = 15;
       }
     );
-  
-    // 💡 Ajuste de luz direccional
+
     const directionalLight = globe.lights().find(l => l.type === "DirectionalLight");
     directionalLight && directionalLight.position.set(1, 1, 1);
-  
+
     globeInstance.current = globe;
   }, []);
-  
 
-  // Permitir que App.jsx acceda a métodos del globo
   useImperativeHandle(ref, () => ({
     setSize: (w, h) => {
       globeInstance.current.width(w).height(h);
     }
   }));
 
+  // Antenas fijas
   useEffect(() => {
     const globe = globeInstance.current;
     if (!globe) return;
 
-    globe.pointsData([
-      ...satellites.map((s) => ({
-        type: "satellite",
-        lat: s.position?.lat,
-        lng: s.position?.long,
-        size: 0.4,
-        color: satelliteColor(s.type),
-        label: `${s.name} (${s.satellite_id})`,
-        raw: s
-      })),
+    const staticPoints = [
       ...DSN_STATIONS.map((station) => ({
         type: "antenna",
         lat: station.lat,
@@ -90,76 +89,102 @@ const GlobeComponent = forwardRef(function GlobeComponent({
         color: "white",
         label: station.name,
         raw: station
-      })),
-      ...launchsites.map((site) => ({
-        type: "launchsite",
-        lat: site.location.lat,
-        lng: site.location.long,
-        size: 0.6,
-        color: "yellow",
-        label: site.name
-      })),
-      ...failures
-        .filter((f) => Date.now() - f.timestamp < 20000)
-        .map((f) => ({
-          lat: f.position?.lat,
-          lng: f.position?.long,
-          size: 1,
-          color: "red",
-          label: `💥 Satélite destruido: ${f.satellite_id}`
-        })),
-      ...recentLaunches
-        .filter((l) => Date.now() - l.timestamp < 10000)
-        .map((l) => {
-          const site = launchsites.find((s) => s.station_id === l.launchsite_id);
-          if (!site) return null;
-          return {
-            lat: site.location.lat,
-            lng: site.location.long,
-            size: 1,
-            color: "cyan",
-            label: `🚀 Lanzamiento desde ${site.name}`
-          };
-        }).filter(Boolean),
-      ...(issPosition ? [{
-        lat: issPosition.lat,
-        lng: issPosition.lng,
-        size: 1.2,
-        color: "magenta",
-        label: "🛰️ Estación Espacial Internacional (ISS)"
-      }] : [])
-    ])
+      }))
+    ];
+
+    globe
+      .pointsData(staticPoints)
       .pointAltitude("size")
       .pointColor("color")
       .pointLabel("label")
       .onPointClick((point) => {
         if (point.type === "antenna") {
-          onAntennaClick(point.raw);
+          const antenna = point.raw;
+
+          const nearbySatellites = satellites
+            .filter(s => s.position && s.power)
+            .map(s => {
+              const distance = haversineDistance(s.position, antenna);
+              const signal = Math.max(0, 1 - distance / s.power);
+              return {
+                satellite: s,
+                distance: distance.toFixed(2),
+                signal: +(signal * 100).toFixed(1),
+              };
+            })
+            .filter(({ signal }) => signal > 0);
+
+          const totalSignal = nearbySatellites.reduce((sum, s) => sum + s.signal, 0).toFixed(1);
+
+          onAntennaClick({
+            ...antenna,
+            totalSignal,
+            nearbySatellites
+          });
         } else if (point.type === "satellite") {
           onSatelliteClick(point.raw);
         }
-      })
-      .arcsData(
-        launchArcs.map((arc) => {
-          const launchsite = launchsites.find((s) => s.station_id === arc.launchsite_id);
-          if (!launchsite) return null;
-          return {
-            startLat: launchsite.location.lat,
-            startLng: launchsite.location.long,
-            endLat: arc.debris_site.lat,
-            endLng: arc.debris_site.long,
-            satellite_id: arc.satellite_id
-          };
-        }).filter(Boolean)
-      )
-      .arcColor(() => ["#ffcc00", "#ff0000"])
-      .arcStroke(0.8)
-      .arcAltitude(0.2)
-      .arcDashLength(0.4)
-      .arcDashGap(2)
-      .arcDashInitialGap(() => Math.random() * 5)
-      .arcDashAnimateTime(4000);
-  }, [satellites, launchsites, launchArcs, showCoverage, failures, recentLaunches, issPosition]);
+      });
+  }, [satellites]);
+
+  // Satélites proyectados sobre la Tierra
+  useEffect(() => {
+    const globe = globeInstance.current;
+    if (!globe) return;
+
+    const staticPoints = globe.pointsData()?.filter(p => p.type !== "satellite") || [];
+
+    const projectedSatellites = satellites
+      .filter(s => s.position)
+      .map(s => ({
+        type: "satellite",
+        lat: s.position.lat,
+        lng: s.position.long,
+        size: 0.4,
+        color: satelliteColor(s.type),
+        label: `${s.name} (${s.satellite_id})`,
+        raw: s
+      }));
+
+    globe.pointsData([...staticPoints, ...projectedSatellites]);
+  }, [satellites]);
+
+  // Zonas de cobertura como círculos
+  // Zonas de cobertura como círculos
+useEffect(() => {
+  const globe = globeInstance.current;
+  if (!globe) return;
+
+  const satellitesWithCoverage = satellites.filter(s => s.position && s.power);
+
+  globe.customLayerData(showCoverage ? satellitesWithCoverage : [])
+    .customThreeObject((sat) => {
+      const radius = sat.power / 500; // Escala adecuada
+      console.log(`🎯 Dibujando cobertura para ${sat.name} (r: ${radius})`);
+
+      const geometry = new THREE.CircleGeometry(radius, 32);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: false
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.rotateX(Math.PI / 2); // Para que quede plano sobre la tierra
+      return mesh;
+    })
+    .customThreeObjectUpdate((obj, sat) => {
+      obj.position.setFromSphericalCoords(
+        6371, // Superficie del globo
+        THREE.MathUtils.degToRad(90 - sat.position.lat),
+        THREE.MathUtils.degToRad(sat.position.long)
+      );
+    });
+}, [satellites, showCoverage]);
+
 
   return <div ref={globeContainerRef} style={{ width: "100%", height: "100%" }} />;
 });

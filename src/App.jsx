@@ -39,40 +39,6 @@ function App() {
       setSelectedAntenna(antenna);
     };
 
-    const getSatellitesInRange = () => {
-      if (!selectedAntenna) return [];
-
-      return state.satellites
-        .map((s) => {
-          const distance = getDistance(
-            selectedAntenna.lat,
-            selectedAntenna.lng,
-            s.position?.lat,
-            s.position?.long
-          );
-          const signal = Math.max(0, 1 - distance / s.power);
-          return signal > 0
-            ? { satellite: s, distance: distance.toFixed(2), signal: (signal * 100).toFixed(1) }
-            : null;
-        })
-        .filter(Boolean);
-    };
-
-    const getDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // km
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    };
-
-    const toRad = (value) => (value * Math.PI) / 180;
-
-    const satellitesInRange = getSatellitesInRange();
-
     const handleSatelliteClick = (sat) => {
       setSelectedSatellite(sat);
     };
@@ -152,10 +118,11 @@ function App() {
           <div style={{ margin: "1rem 0", padding: "1rem", border: "1px solid #ccc" }}>
             <h3>📡 Antena seleccionada: {selectedAntenna.name}</h3>
             <p>Lat: {selectedAntenna.lat} | Lng: {selectedAntenna.lng}</p>
+            <p><strong>Señal total:</strong> {selectedAntenna.totalSignal}%</p>
             <h4>🛰️ Satélites en cobertura:</h4>
-            {satellitesInRange.length > 0 ? (
+            {selectedAntenna.nearbySatellites?.length > 0 ? (
               <ul>
-                {satellitesInRange.map((entry, idx) => (
+                {selectedAntenna.nearbySatellites.map((entry, idx) => (
                   <li key={idx}>
                     {entry.satellite.name} – Distancia: {entry.distance} km – Señal: {entry.signal}%
                   </li>
