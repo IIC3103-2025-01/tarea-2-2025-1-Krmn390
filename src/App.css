@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: row;
   width: 100%;
+  max-height: fit-content;
   gap: 2rem;
 }
 
@@ -18,7 +19,7 @@
 .globe-container {
   width: 100%;
   height: auto;
-  max-height: 90vh; /* o lo que prefieras */
+  max-height: 100vh; /* o lo que prefieras */
   position: relative;
 }
 
@@ -64,12 +65,13 @@
 /* Sección de la tabla */
 
 .info-panel {
-  padding: 1rem;
+  margin-right: 2rem;
   flex:1.5;
+  font-size: small;
 }
 
 .chat-panel{
-  padding: 1rem;
+  margin-right: 2rem;
   flex: 1;
 }
 

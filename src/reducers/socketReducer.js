@@ -10,22 +10,38 @@ export const initialState = {
   
   export function socketReducer(state, action) {
     switch (action.type) {
-        case "SATELLITES":
-            return { ...state, satellites: action.payload };
-        case "COMM":
-            return { ...state, messages: [...state.messages, action.payload] };
-            case "LAUNCH":
-                return {
-                  ...state,
-                  launchArcs: [...state.launchArcs, action.payload],
-                  recentLaunches: [
-                    ...state.recentLaunches,
-                    {
-                      launchsite_id: action.payload.launchsite_id,
-                      timestamp: Date.now(),
-                    },
-                  ],
-                };
+      case "POSITION_UPDATE":
+        return {
+          ...state,
+          satellites: state.satellites.map((sat) => {
+            const update = action.payload.find((s) => s.satellite_id === sat.satellite_id);
+            return update
+              ? {
+                  ...sat,
+                  position: update.position,
+                  altitude: update.altitude
+                }
+              : sat;
+          }),
+        };
+      case "SATELLITES":
+        console.log("📡 Recibidos satélites:", action.payload);
+        return { ...state, satellites: action.payload };
+      
+      case "COMM":
+          return { ...state, messages: [...state.messages, action.payload] };
+      case "LAUNCH":
+          return {
+            ...state,
+            launchArcs: [...state.launchArcs, action.payload],
+            recentLaunches: [
+              ...state.recentLaunches,
+              {
+                launchsite_id: action.payload.launchsite_id,
+                timestamp: Date.now(),
+              },
+            ],
+          };
         case "IN-ORBIT":
             return {
                 ...state,
@@ -85,14 +101,16 @@ export const initialState = {
         case "REQUEST":
             return { ...state, requests: [...state.requests, action.payload] };
         case "SATELLITE-STATUS":
-            return {
+          const sat = action.payload.satellite;
+          const alreadyExists = state.satellites.find(s => s.satellite_id === sat.satellite_id);
+          return {
             ...state,
-            satellites: state.satellites.map((s) =>
-                s.satellite_id === action.payload.satellite.satellite_id
-                ? action.payload.satellite
-                : s
-            ),
-            };
+            satellites: alreadyExists
+              ? state.satellites.map((s) =>
+                  s.satellite_id === sat.satellite_id ? sat : s
+                )
+              : [...state.satellites, sat], // ✅ agrega si no existe
+          };
         default:
             return state;
         }

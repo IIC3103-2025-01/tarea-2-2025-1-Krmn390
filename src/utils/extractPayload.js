@@ -1,6 +1,10 @@
 export function extractPayload(event) {
     switch (event.type) {
+      case "POSITION_UPDATE":
+        console.log("✈️ POSITION_UPDATE recibido:", event.satellites);
+        return event.satellites;
       case "SATELLITES":
+        console.log("✅ SATELLITES completo recibido:", event.satellites);
         return event.satellites;
       case "COMM":
         return event.message;

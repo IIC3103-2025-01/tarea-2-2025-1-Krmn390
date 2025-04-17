@@ -22,6 +22,15 @@ function App() {
       dispatch({ type: data.type, payload: extractPayload(data) });
     });
 
+    useEffect(() => {
+      sendCommand("SATELLITES", {});  // ✅ Correcto
+      sendCommand("LAUNCHSITES", {}); // ✅ Correcto
+    }, []);
+    
+
+    console.log("🛰️ Satélites en estado:", state.satellites);
+
+
     const handleSendMessage = (text) => {
       sendCommand("COMM", { message: text });
     };
@@ -112,7 +121,6 @@ function App() {
 
       <div className = "info-section">
         <div className="info-panel">
-          <h2> 🛰️ Satélites en órbita</h2>
           <SatelliteTable satellites={state.satellites} />
         </div>
         <div className="chat-panel">
