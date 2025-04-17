@@ -10,7 +10,7 @@ function SatelliteTable({ satellites }) {
   const filteredSatellites = validSatellites
     .filter((s) =>
       filterCountry
-        ? (s.organization?.country?.country_code || "")
+        ? (s.organization?.country?.name || "")
             .toLowerCase()
             .includes(filterCountry.toLowerCase())
         : true
@@ -107,16 +107,27 @@ function SatelliteTable({ satellites }) {
               <td style={{ padding: "0.5rem" }}>{s.power}</td>
               <td style={{ padding: "0.5rem" }}>{Math.round(s.altitude)}</td>
               <td style={{ padding: "0.5rem" }}>{s.lifespan}</td>
-              <td style={{ padding: "0.5rem" }}>{s.launch_date}</td>
+              <td style={{ padding: "0.5rem" }}>
+                {new Date(s.launch_date).toLocaleDateString()}
+              </td>
               <td style={{ padding: "0.5rem" }}>{s.organization?.name}</td>
-              <td style={{ padding: "0.5rem" }}>{s.organization?.country?.country_code}</td>
+              <td style={{ padding: "0.5rem", alignItems: "center"}}>
+                {s.organization?.country?.country_code && (
+                  <img
+                    src={`https://flagcdn.com/w40/${s.organization.country.country_code.toLowerCase()}.png`}
+                    alt={s.organization.country.name}
+                    title={s.organization.country.name}
+                    style={{ width: "24px", height: "16px", objectFit: "cover", border: "1px solid #ccc" }}
+                  />
+                )}
+              </td>
               <td style={{ padding: "0.5rem" }}>
                 {s.status === "lost" ? (
                   <span title={`Destruido el ${new Date(s.destroyed_at * 1000).toLocaleString()}`}>
-                    ☠️ Perdido
+                    Perdido
                   </span>
                 ) : (
-                  "🛰️ Activo"
+                  "Activo"
                 )}
               </td>
             </tr>

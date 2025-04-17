@@ -19,7 +19,7 @@
 .globe-container {
   width: 100%;
   height: auto;
-  max-height: 100vh; /* o lo que prefieras */
+  max-height: 90vh; /* o lo que prefieras */
   position: relative;
 }
 
